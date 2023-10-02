@@ -1,1 +1,55 @@
-adasd
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: coin98-stag
+  region: ap-southeast-1
+
+vpc:
+  subnets:
+    public:
+      ap-southeast-1a: { id: subnet-07e068c84971488b7 }
+      ap-southeast-1b: { id: subnet-02336f0082d36fbf9 }
+    private:
+      ap-southeast-1a: { id: subnet-02dd46b1910fe4854 }
+      ap-southeast-1b: { id: subnet-0647e9fd7f3e12bc4 }
+
+managedNodeGroups:
+  - name: appnode
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/coin98-stag: "owned"
+    disableIMDSv1: false
+    disablePodIMDS: false
+    minSize: 3
+    maxSize: 10
+    maxPodsPerNode: 110
+    volumeIOPS: 3000
+    volumeThroughput: 125
+    volumeSize: 40
+    volumeType: gp3
+    spot: true
+    ssh:
+      publicKeyName: coin98
+    privateNetworking: true
+    instanceTypes:
+      - m5.xlarge
+      - m5a.xlarge
+      - m5n.xlarge
+      - m5zn.xlarge
+      - t3.xlarge
+      - t3a.xlarge
+    iam:
+      withAddonPolicies:
+        autoScaler: false
+        albIngress: false
+        appMesh: false
+        appMeshPreview: false
+        certManager: false
+        cloudWatch: false
+        ebs: true
+        efs: true
+        externalDNS: false
+        fsx: false
+        imageBuilder: true
+        xRay: false
