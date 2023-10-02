@@ -42,6 +42,11 @@ Mapping domain exam.coin98.com to IP loadbalance on ingress-nginx. Excuting curl
 curl -X POST -F "file=@/root/coin98/upload_file.txt" https://exam.coin98.com
 ```
 
+# CICD
+```
+Refer at ".gitlab-ci.yml" file
+```
+
 
 
 
