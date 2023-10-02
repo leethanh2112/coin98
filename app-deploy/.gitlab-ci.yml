@@ -1,0 +1,37 @@
+stages:
+  - prepare
+  - pack-image
+  - deploy
+
+pack-image:
+  stage: pack-image
+  image:
+    name: registry.coin98.com/devops/kaniko-executor:debug
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"$REGISTRY_URL\":{\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASS\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --skip-tls-verify --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $REGISTRY_URL/$REGISTRY_PROJECT/$CI_PROJECT_NAME:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+  tags:
+    - coin98
+
+deploy:
+  stage: deploy
+  image:
+    name: registry.coin98.com/devops/alpine-helm:latest
+    entrypoint: [""]
+  script:
+    - mkdir -p /home/gitlab-runner/.kube
+    - echo ${KUBECONFIG} | base64 -d >> /home/gitlab-runner/.kube/config
+    - export KUBECONFIG=$KUBECONFIG:/home/gitlab-runner/.kube/config
+    - helm registry login https://${REGISTRY_URL} --username ${REGISTRY_USER} --password ${REGISTRY_PASS}
+    - cd cicd && helm package $CI_PROJECT_NAME/chart --version $CI_PIPELINE_ID
+    - helm push $CI_PROJECT_NAME-$CI_PIPELINE_ID.tgz oci://${REGISTRY_URL}/$REGISTRY_PROJECT/$CI_PROJECT_NAME
+    - helm upgrade
+      --install $CI_PROJECT_NAME oci://${REGISTRY_URL}/coffee/$CI_PROJECT_NAME
+      --version $CI_PIPELINE_ID
+      --namespace $CI_COMMIT_BRANCH
+      --values $CI_PROJECT_NAME/$CI_COMMIT_BRANCH.yml
+      --set image.repository=$REGISTRY_URL/$REGISTRY_PROJECT/$CI_PROJECT_NAME
+      --set image.tag=$$CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA
+  tags:
+    - coin98
