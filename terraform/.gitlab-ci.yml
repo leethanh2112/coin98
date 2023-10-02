@@ -1,0 +1,48 @@
+stages:
+  - plan
+  - apply
+  - destroy
+
+image:
+  name: registry.coin98.com/devops/terraform:latest
+  entrypoint:
+    - "/usr/bin/env"
+    - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+plan:
+  stage: plan
+  before_script:
+    - terraform init
+    - terraform validate
+  script:
+    - terraform init
+    - terraform plan -out "plan.json"
+  artifacts:
+    paths:
+      - plan.json
+  tags:
+    - coin98
+
+apply:
+  stage: apply
+  before_script:
+    - terraform init
+  script:
+    - terraform apply -auto-approve
+  dependencies:
+    - plan
+  when: manual
+  tags:
+    - coin98
+
+destroy:
+  stage: destroy
+  before_script:
+    - terraform init
+  script:
+    - terraform destroy -auto-approve
+  tags:
+    - coin98
+  when: manual 
+
+
