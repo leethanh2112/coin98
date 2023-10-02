@@ -1,0 +1,106 @@
+stages:
+- new deploy
+- add node
+- remove node
+- reset node
+
+variables:
+  INVENTORY: /builds/system/k8s/k8s_cluster_prod/inventory/mycluster/hosts.yaml
+  NEW_DEPLOY: ""
+  ADD_NODE: ""
+  REMOVE_NODE: ""
+
+image:
+  name: registry.coin98.com/infra/alpine_ansible:2.9.6
+  entrypoint:
+    - "/usr/bin/env"
+    - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+new deploy:
+  before_script:
+    - env
+    - export ANSIBLE_HOST_KEY_CHECKING=False
+    - envsubst < requirements.tmpl > requirements.yml
+    - ansible-galaxy install -r requirements.yml --ignore-errors 
+    - ansible-playbook -i hosts.yml prepare.yml
+    - mkdir -p /home/gitlab-runner/.ssh
+    - chmod 700 /home/gitlab-runner/.ssh
+    - cp -f id_rsa /home/gitlab-runner/.ssh/
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
+  stage: new deploy
+  script:
+    - ansible-playbook -i $INVENTORY playbook.yml
+  tags:
+    - coin98
+  when: manual
+  except:
+    variables:
+      - $ADD_NODE
+      - $REMOVE_NODE
+
+add node:
+  before_script:
+    - env
+    - export ANSIBLE_HOST_KEY_CHECKING=False
+    - envsubst < requirements.tmpl > requirements.yml
+    - ansible-galaxy install -r requirements.yml --ignore-errors 
+    - ansible-playbook -i hosts.yml prepare.yml
+    - mkdir -p /home/gitlab-runner/.ssh
+    - chmod 700 /home/gitlab-runner/.ssh
+    - cp -f id_rsa /home/gitlab-runner/.ssh/
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
+    - ansible --version
+  stage: add node
+  script:
+     - ansible-playbook -i $INVENTORY playbook.yml -b -l vnpe-k8smt-03q
+  tags:
+    - coin98
+  when: manual
+  except:
+    variables:
+      - $NEW_DEPLOY
+      - $REMOVE_NODE
+
+remove node:
+  before_script:
+    - env
+    - export ANSIBLE_HOST_KEY_CHECKING=False
+    - envsubst < requirements.tmpl > requirements.yml
+    - ansible-galaxy install -r requirements.yml --ignore-errors 
+    - ansible-playbook -i hosts.yml prepare.yml
+    - mkdir -p /home/gitlab-runner/.ssh
+    - chmod 700 /home/gitlab-runner/.ssh
+    - cp -f id_rsa /home/gitlab-runner/.ssh/
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
+  stage: remove node
+  script:
+    - ansible-playbook -i $INVENTORY remove-node.yml -e node=vnpe-k8smt-03q
+  tags:
+    - coin98
+  when: manual
+  except:
+    variables:
+      - $NEW_DEPLOY
+      - $ADD_NODE
+
+reset node:
+  before_script:
+    - env
+    - export ANSIBLE_HOST_KEY_CHECKING=False
+    - envsubst < requirements.tmpl > requirements.yml
+    - ansible-galaxy install -r requirements.yml --ignore-errors 
+    - ansible-playbook -i hosts.yml prepare.yml
+    - mkdir -p /home/gitlab-runner/.ssh
+    - chmod 700 /home/gitlab-runner/.ssh
+    - cp -f id_rsa /home/gitlab-runner/.ssh/
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
+  stage: reset node
+  script:
+    - ansible-playbook -i $INVENTORY reset.yml -e node=vnpe-k8smt-03q
+  tags:
+    - coin98
+  when: manual
+  except:
+    variables:
+      - $NEW_DEPLOY
+      - $ADD_NODE
