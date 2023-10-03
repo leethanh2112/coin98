@@ -1,6 +1,9 @@
 terraform {
-  backend "local" {
-    path = "./tfstate/terraform.tfstate"
+  backend "s3" {
+    profile = "coin98"
+    bucket  = "coin98-terraform-backend"
+    region  = "us-east-1"
+    key     = "terraform.tfstate"
   }
   required_providers {
     aws = {
